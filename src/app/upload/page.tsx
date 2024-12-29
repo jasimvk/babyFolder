@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import FileSearch from '../../components/FileSearch';
 
-export const FileUpload = () => {
+  const FileUpload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string>('');
   const [documents, setDocuments] = useState<any[]>([]);

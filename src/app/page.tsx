@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import FileUpload from '@/components/FileUpload';
+import {FileUpload} from '@/components/FileUpload';
 
 const Home = () => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
