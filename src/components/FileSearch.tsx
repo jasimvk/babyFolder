@@ -1,22 +1,68 @@
 "use client";
 
-import React from 'react';
+import { useEffect, useState } from "react";
+import { supabase } from "@/utils/supabaseClient";
 
 interface Document {
   name: string;
-  publicUrl: string;
+  signedUrl: string;
 }
 
-interface FileSearchProps {
-  documents: Document[];
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-}
+const FileSearch = () => {
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-const FileSearch: React.FC<FileSearchProps> = ({ documents, searchQuery, setSearchQuery }) => {
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      // Fetch the list of files in the private bucket
+      const { data: files, error } = await supabase.storage
+        .from("babyFolder") // Replace "babyFolder" with your actual bucket name
+        .list();
+
+      if (error) {
+        console.error("Error fetching files:", error.message);
+        alert("Error: " + error.message);
+        return;
+      }
+
+      if (files) {
+        // Generate signed URLs for each file
+        const docs = await Promise.all(
+          files.map(async (file) => {
+            const { data: signedUrlData, error: signedUrlError } =
+              await supabase.storage
+                .from("babyFolder") // Replace "babyFolder" with your bucket name
+                .createSignedUrl(file.name, 60 * 60); // 60 minutes expiry
+
+            if (signedUrlError) {
+              console.error(
+                `Error generating signed URL for ${file.name}:`,
+                signedUrlError.message
+              );
+              return null;
+            }
+
+            return {
+              name: file.name,
+              signedUrl: signedUrlData.signedUrl,
+            };
+          })
+        );
+
+        setDocuments(docs.filter((doc) => doc !== null));
+      }
+    };
+
+    fetchDocuments();
+  }, []);
+
   const filteredDocuments = documents.filter((doc) =>
     doc.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleLinkClick = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="flex flex-col items-center mt-6 w-full">
@@ -31,16 +77,17 @@ const FileSearch: React.FC<FileSearchProps> = ({ documents, searchQuery, setSear
         {filteredDocuments.length > 0 ? (
           <div className="grid grid-cols-1 gap-4">
             {filteredDocuments.map((doc) => (
-              <div key={doc.name} className="p-4 bg-gray-100 rounded-lg shadow-md flex justify-between items-center">
+              <div
+                key={doc.name}
+                className="p-4 bg-gray-100 rounded-lg shadow-md flex justify-between items-center"
+              >
                 <span>{doc.name}</span>
-                <a
-                  href={doc.publicUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => handleLinkClick(doc.signedUrl)}
                   className="text-blue-500 underline hover:text-blue-700 transition duration-300"
                 >
                   View/Download
-                </a>
+                </button>
               </div>
             ))}
           </div>
